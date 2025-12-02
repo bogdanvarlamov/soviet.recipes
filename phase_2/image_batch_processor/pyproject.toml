@@ -1,0 +1,12 @@
+[project]
+name = "image-batch-processor"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "crewai>=1.6.1",
+    "hypothesis>=6.148.5",
+    "pydantic>=2.12.5",
+    "pytest>=9.0.1",
+]
