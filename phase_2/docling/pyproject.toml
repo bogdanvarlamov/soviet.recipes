@@ -1,9 +1,0 @@
-[project]
-name = "docling-poc"
-version = "0.1.0"
-description = "Docling document processing proof-of-concept"
-requires-python = ">=3.11"
-dependencies = [
-    "docling",
-    "easyocr>=1.7.2",
-]
