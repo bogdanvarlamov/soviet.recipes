@@ -5,8 +5,18 @@ from pathlib import Path
 from typing import Optional
 
 from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions, EasyOcrOptions
+from docling.datamodel.accelerator_options import (
+    AcceleratorDevice,
+    AcceleratorOptions,
+)
+from docling.datamodel.pipeline_options import (
+    PdfPipelineOptions,
+    EasyOcrOptions,
+    VlmPipelineOptions,
+)
+from docling.datamodel.pipeline_options_vlm_model import ApiVlmOptions, ResponseFormat
 from docling.document_converter import DocumentConverter, ImageFormatOption
+from docling.pipeline.vlm_pipeline import VlmPipeline
 from docling_core.types.doc import ImageRefMode, PictureItem, TableItem
 
 from engines.base import ExtractionEngine
@@ -45,27 +55,17 @@ class DoclingEngine(ExtractionEngine):
             return self._converter
         
         try:
-            # Configure OCR with EasyOCR for Russian language
-            ocr_options = EasyOcrOptions(lang=["ru", "en"])
-            pipeline_options = PdfPipelineOptions(
-                do_ocr=self.config.ocr_enabled,
-                ocr_options=ocr_options,
-                generate_page_images=True,
-                generate_picture_images=True,
-                images_scale=2.0,  # Higher resolution for better quality
-                do_table_structure=True,  # Detect table structures
-            )
-            
-            # Initialize the document converter with OCR configuration
-            self._converter = DocumentConverter(
-                format_options={
-                    InputFormat.IMAGE: ImageFormatOption(
-                        pipeline_options=pipeline_options
-                    ),
-                }
-            )
-            
-            self.logger.info("Docling DocumentConverter initialized successfully (debug mode enabled)")
+            if self.config.use_vlm:
+                self._converter = self._build_vlm_converter()
+                self.logger.info(
+                    "Docling DocumentConverter initialized with VLM backend "
+                    f"(url={self.config.vlm_url}, model={self.config.vlm_model})"
+                )
+            else:
+                self._converter = self._build_ocr_converter()
+                self.logger.info(
+                    "Docling DocumentConverter initialized with EasyOCR backend"
+                )
             return self._converter
             
         except Exception as e:
@@ -73,6 +73,82 @@ class DoclingEngine(ExtractionEngine):
             raise ConfigurationError(
                 f"Failed to initialize Docling converter: {e}"
             ) from e
+    
+    def _build_ocr_converter(self) -> DocumentConverter:
+        """Build a DocumentConverter using the traditional EasyOCR pipeline."""
+        # Configure OCR with EasyOCR for Russian language.
+        #
+        # Device selection is controlled via accelerator_options (the modern
+        # Docling API); EasyOcrOptions.use_gpu is deprecated. When use_gpu is
+        # True we request CUDA, otherwise CPU. Note: torch-based EasyOCR only
+        # supports CUDA (NVIDIA) or MPS (Apple) GPUs - it cannot use AMD/Vulkan
+        # GPUs on Windows, and will silently fall back to CPU if CUDA is
+        # unavailable.
+        device = AcceleratorDevice.CUDA if self.config.use_gpu else AcceleratorDevice.CPU
+        ocr_options = EasyOcrOptions(lang=["ru", "en"])
+        pipeline_options = PdfPipelineOptions(
+            accelerator_options=AcceleratorOptions(device=device),
+            do_ocr=self.config.ocr_enabled,
+            ocr_options=ocr_options,
+            generate_page_images=True,
+            generate_picture_images=True,
+            images_scale=2.0,  # Higher resolution for better quality
+            do_table_structure=True,  # Detect table structures
+        )
+        return DocumentConverter(
+            format_options={
+                InputFormat.IMAGE: ImageFormatOption(
+                    pipeline_options=pipeline_options
+                ),
+            }
+        )
+    
+    def _build_vlm_converter(self) -> DocumentConverter:
+        """
+        Build a DocumentConverter that uses a remote vision LLM as its text
+        backend via Docling's VLM pipeline.
+
+        Targets an OpenAI-compatible /v1/chat/completions endpoint, such as a
+        local llama.cpp server running Qwen3-VL.
+        """
+        response_format_map = {
+            "markdown": ResponseFormat.MARKDOWN,
+            "doctags": ResponseFormat.DOCTAGS,
+            "html": ResponseFormat.HTML,
+        }
+        response_format = response_format_map[self.config.vlm_response_format]
+
+        # Optional bearer auth header (llama.cpp usually needs none)
+        headers = {}
+        if self.config.vlm_api_key:
+            headers["Authorization"] = f"Bearer {self.config.vlm_api_key}"
+
+        vlm_options = ApiVlmOptions(
+            url=self.config.vlm_url,
+            params={"model": self.config.vlm_model},
+            headers=headers,
+            prompt=self.config.vlm_prompt,
+            timeout=self.config.vlm_timeout,
+            scale=self.config.vlm_scale,
+            response_format=response_format,
+        )
+
+        pipeline_options = VlmPipelineOptions(
+            enable_remote_services=True,  # required to call an external endpoint
+            vlm_options=vlm_options,
+            generate_page_images=True,
+            generate_picture_images=True,
+            images_scale=2.0,
+        )
+
+        return DocumentConverter(
+            format_options={
+                InputFormat.IMAGE: ImageFormatOption(
+                    pipeline_cls=VlmPipeline,
+                    pipeline_options=pipeline_options,
+                ),
+            }
+        )
     
     def extract_text(self, image_path: str) -> str:
         """
@@ -105,20 +181,27 @@ class DoclingEngine(ExtractionEngine):
             # Convert the document
             result = converter.convert(str(image_file))
             
-            # Determine output directory - use phase_2/image_batch_processor/output
-            # Find the phase_2/image_batch_processor directory
-            current_path = Path.cwd()
-            if "image_batch_processor" in str(current_path):
-                # We're already in the image_batch_processor directory
-                base_output_dir = current_path / "output"
+            # Determine the base output directory for engine artifacts.
+            if self.config.output_dir:
+                # Use the run-specific directory supplied via config (e.g. a
+                # timestamped folder), so runs are kept separate for comparison.
+                base_output_dir = Path(self.config.output_dir)
             else:
-                # Try to find it relative to current location
-                base_output_dir = Path("phase_2/image_batch_processor/output")
+                # Fall back to a repo-relative ./output directory.
+                current_path = Path.cwd()
+                if "image_batch_processor" in str(current_path):
+                    base_output_dir = current_path / "output"
+                else:
+                    base_output_dir = Path("phase_2/image_batch_processor/output")
             
+            # Namespace artifact folders by backend so a VLM run does not
+            # overwrite artifacts from a previous EasyOCR run (and vice versa).
+            prefix = "docling_vlm" if self.config.use_vlm else "docling"
+
             # Create output directories
-            debug_dir = base_output_dir / "docling_debug"
-            markdown_dir = base_output_dir / "docling_markdown"
-            doctags_dir = base_output_dir / "docling_doctags"
+            debug_dir = base_output_dir / f"{prefix}_debug"
+            markdown_dir = base_output_dir / f"{prefix}_markdown"
+            doctags_dir = base_output_dir / f"{prefix}_doctags"
             
             debug_dir.mkdir(parents=True, exist_ok=True)
             markdown_dir.mkdir(parents=True, exist_ok=True)
@@ -136,23 +219,34 @@ class DoclingEngine(ExtractionEngine):
                         page.image.pil_image.save(fp, format="PNG")
                     self.logger.info(f"Saved page image: {page_image_filename}")
             
-            # Save images of figures and tables
+            # Save images of figures and tables.
+            # Guarded per-element: the VLM pipeline may emit tables/pictures
+            # without rasterized crops, in which case get_image() returns None.
             table_counter = 0
             picture_counter = 0
             for element, _level in result.document.iterate_items():
-                if isinstance(element, TableItem):
-                    table_counter += 1
-                    element_image_filename = images_dir / f"table-{table_counter}.png"
-                    with element_image_filename.open("wb") as fp:
-                        element.get_image(result.document).save(fp, "PNG")
-                    self.logger.info(f"Saved table image: {element_image_filename}")
-                
-                if isinstance(element, PictureItem):
-                    picture_counter += 1
-                    element_image_filename = images_dir / f"picture-{picture_counter}.png"
-                    with element_image_filename.open("wb") as fp:
-                        element.get_image(result.document).save(fp, "PNG")
-                    self.logger.info(f"Saved picture image: {element_image_filename}")
+                try:
+                    if isinstance(element, TableItem):
+                        element_image = element.get_image(result.document)
+                        if element_image is None:
+                            continue
+                        table_counter += 1
+                        element_image_filename = images_dir / f"table-{table_counter}.png"
+                        with element_image_filename.open("wb") as fp:
+                            element_image.save(fp, "PNG")
+                        self.logger.info(f"Saved table image: {element_image_filename}")
+                    
+                    if isinstance(element, PictureItem):
+                        element_image = element.get_image(result.document)
+                        if element_image is None:
+                            continue
+                        picture_counter += 1
+                        element_image_filename = images_dir / f"picture-{picture_counter}.png"
+                        with element_image_filename.open("wb") as fp:
+                            element_image.save(fp, "PNG")
+                        self.logger.info(f"Saved picture image: {element_image_filename}")
+                except Exception as e:
+                    self.logger.warning(f"Could not save element image: {e}")
             
             # Save markdown with externally referenced images (not base64 embedded)
             md_output_file = markdown_dir / f"{image_file.stem}.md"
@@ -169,7 +263,7 @@ class DoclingEngine(ExtractionEngine):
             self.logger.info(f"Saved doctags to: {doctags_output_file}")
             
             # Save conversion confidence report
-            reports_dir = base_output_dir / "docling_reports"
+            reports_dir = base_output_dir / f"{prefix}_reports"
             reports_dir.mkdir(parents=True, exist_ok=True)
             report_file = reports_dir / f"{image_file.stem}_report.txt"
             with report_file.open("w", encoding="utf-8") as fp:
@@ -248,6 +342,11 @@ class DoclingEngine(ExtractionEngine):
             # Attempt to initialize the converter to validate configuration
             self._initialize_converter()
             
+            # When using the VLM backend, verify the server is reachable so a
+            # full batch fails fast instead of erroring on every image.
+            if self.config.use_vlm:
+                self._check_vlm_server_reachable()
+            
             self.logger.info("Docling engine configuration is valid")
             return True
             
@@ -258,3 +357,32 @@ class DoclingEngine(ExtractionEngine):
             error_msg = f"Docling configuration validation failed: {e}"
             self.logger.error(error_msg)
             raise ConfigurationError(error_msg) from e
+    
+    def _check_vlm_server_reachable(self) -> None:
+        """
+        Probe the configured VLM server's OpenAI-compatible /models endpoint.
+
+        Raises:
+            ConfigurationError: If the server cannot be reached.
+        """
+        import httpx
+
+        # Derive the /models endpoint from the chat/completions URL.
+        base = self.config.vlm_url.rstrip("/")
+        if base.endswith("/chat/completions"):
+            base = base[: -len("/chat/completions")]
+        models_url = f"{base}/models"
+
+        headers = {}
+        if self.config.vlm_api_key:
+            headers["Authorization"] = f"Bearer {self.config.vlm_api_key}"
+
+        try:
+            response = httpx.get(models_url, headers=headers, timeout=10.0)
+            response.raise_for_status()
+            self.logger.info(f"VLM server reachable at {models_url}")
+        except Exception as e:
+            raise ConfigurationError(
+                f"Could not reach VLM server at {models_url}: {e}. "
+                f"Is llama-server running?"
+            ) from e

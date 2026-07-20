@@ -13,28 +13,36 @@ import pytest
 from core.processor import BatchProcessor
 from core.models import ProcessingResult, BatchReport
 from engines.base import ExtractionEngine
-from exceptions import ExtractionError
+from exceptions import ExtractionError, PageSkipped
 
 
 class MockEngine(ExtractionEngine):
     """Mock extraction engine for testing."""
     
-    def __init__(self, should_fail=False, fail_count=0):
+    def __init__(self, should_fail=False, fail_count=0, should_skip=False,
+                 skip_reason="full-page photograph"):
         """
         Initialize mock engine.
         
         Args:
             should_fail: If True, always fails
             fail_count: Number of times to fail before succeeding
+            should_skip: If True, always raises PageSkipped
+            skip_reason: Reason reported when skipping
         """
         self.should_fail = should_fail
         self.fail_count = fail_count
+        self.should_skip = should_skip
+        self.skip_reason = skip_reason
         self.call_count = 0
         self.extracted_texts = {}
         
     def extract_text(self, image_path: str) -> str:
         """Mock text extraction."""
         self.call_count += 1
+        
+        if self.should_skip:
+            raise PageSkipped(self.skip_reason)
         
         if self.should_fail:
             raise ExtractionError(f"Mock extraction failed for {image_path}")
@@ -289,3 +297,66 @@ class TestBatchProcessor:
         assert (output_dir / "image3.txt").exists()
         assert not (output_dir / "image1.txt").exists()
         assert not (output_dir / "image2.txt").exists()
+    
+    def test_process_single_image_skipped_is_terminal(self, tmp_path):
+        """A skipped page is terminal: no retries, marked skipped, empty output."""
+        engine = MockEngine(should_skip=True, skip_reason="full-page photograph")
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+        
+        processor = BatchProcessor(engine=engine, output_dir=output_dir, max_retries=3)
+        
+        image_path = tmp_path / "photo.jpg"
+        image_path.touch()
+        
+        result = processor.process_single_image(image_path)
+        
+        # Skip is a handled outcome, not a failure, and must not be retried.
+        assert result.success is True
+        assert result.skipped is True
+        assert result.skip_reason == "full-page photograph"
+        assert result.error is None
+        assert result.attempts == 1
+        assert engine.call_count == 1
+        
+        # An empty output file preserves the 1:1 image->text mapping.
+        output_file = Path(result.output_path)
+        assert output_file.exists()
+        assert output_file.read_text() == ""
+    
+    def test_process_batch_counts_skips_separately(self, tmp_path):
+        """Batch report counts skipped pages apart from successes and failures."""
+        engine = MockEngine()
+        
+        original_extract = engine.extract_text
+        def routed_extract(image_path: str) -> str:
+            if "skipme" in image_path:
+                raise PageSkipped("blank page")
+            if "boom" in image_path:
+                raise ExtractionError("kaboom")
+            return original_extract(image_path)
+        
+        engine.extract_text = routed_extract
+        
+        input_dir = tmp_path / "input"
+        input_dir.mkdir()
+        output_dir = tmp_path / "output"
+        
+        (input_dir / "good.jpg").touch()
+        (input_dir / "skipme.jpg").touch()
+        (input_dir / "boom.jpg").touch()
+        
+        processor = BatchProcessor(engine=engine, output_dir=output_dir, max_retries=1)
+        
+        report = processor.process_batch(input_dir)
+        
+        assert report.total_images == 3
+        assert report.successful == 1
+        assert report.skipped == 1
+        assert report.failed == 1
+        # Skips count as handled: (1 successful + 1 skipped) / 3.
+        assert report.success_rate() == pytest.approx(2 / 3, rel=0.01)
+        
+        skip_result = next(r for r in report.results if "skipme" in r.image_path)
+        assert skip_result.skipped is True
+        assert skip_result.skip_reason == "blank page"

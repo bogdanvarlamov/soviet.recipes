@@ -2,7 +2,8 @@
 
 import logging
 import sys
-from typing import Optional
+from pathlib import Path
+from typing import Optional, Union
 
 
 def setup_logger(
@@ -77,3 +78,35 @@ def setup_logging(level: int = logging.INFO) -> None:
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[logging.StreamHandler(sys.stdout)]
     )
+
+
+def add_file_logging(
+    log_path: Union[str, Path],
+    level: int = logging.INFO,
+    format_string: Optional[str] = None,
+) -> Path:
+    """
+    Attach a file handler to the root logger so all log output is also written
+    to a file (in addition to the console). Useful for monitoring unattended
+    runs via `tail`/`Get-Content -Wait`.
+
+    Args:
+        log_path: Path to the log file (parent directories are created).
+        level: Logging level for the file handler.
+        format_string: Custom format string for log messages.
+
+    Returns:
+        The resolved log file path.
+    """
+    log_path = Path(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    file_handler = logging.FileHandler(log_path, encoding="utf-8")
+    file_handler.setLevel(level)
+    file_handler.setFormatter(
+        logging.Formatter(
+            format_string or '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+    )
+    logging.getLogger().addHandler(file_handler)
+    return log_path

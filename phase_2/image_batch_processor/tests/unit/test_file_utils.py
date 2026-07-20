@@ -46,6 +46,26 @@ class TestDiscoverImages:
         assert result[0].name == "apple.jpg"
         assert result[1].name == "middle.jpg"
         assert result[2].name == "zebra.jpg"
+
+    def test_returns_naturally_sorted_list_for_numbered_pages(self, tmp_path):
+        """Numbered filenames must sort numerically, not lexicographically.
+
+        Plain string sort would order "pages-100.jpg" before "pages-2.jpg"
+        (character '1' < '2'), which breaks the cookbook's true page/reading
+        order (Requirement: batch discovery preserves book reading order).
+        """
+        for name in [
+            "pages-1.jpg", "pages-2.jpg", "pages-10.jpg",
+            "pages-99.jpg", "pages-100.jpg", "pages-224.jpg",
+        ]:
+            (tmp_path / name).touch()
+
+        result = discover_images(tmp_path, [".jpg"])
+
+        assert [p.name for p in result] == [
+            "pages-1.jpg", "pages-2.jpg", "pages-10.jpg",
+            "pages-99.jpg", "pages-100.jpg", "pages-224.jpg",
+        ]
     
     def test_case_insensitive_extension_matching(self, tmp_path):
         """Test that extension matching is case-insensitive."""

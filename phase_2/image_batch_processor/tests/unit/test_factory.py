@@ -1,17 +1,23 @@
 """Unit tests for EngineFactory."""
 
+import sys
+from pathlib import Path
+
+# Add the parent directory to the path so we can import from the package
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 import pytest
 
-from image_batch_processor.core.factory import EngineFactory
-from image_batch_processor.config.settings import (
+from core.factory import EngineFactory
+from config.settings import (
     DoclingConfig,
     LLMConfig,
     APIConfig,
     EngineConfig,
 )
-from image_batch_processor.engines.docling import DoclingEngine
-from image_batch_processor.engines.llm import LLMEngine
-from image_batch_processor.engines.api import APIEngine
+from engines.docling import DoclingEngine
+from engines.llm import LLMEngine
+from engines.api import APIEngine
 
 
 class TestEngineFactory:

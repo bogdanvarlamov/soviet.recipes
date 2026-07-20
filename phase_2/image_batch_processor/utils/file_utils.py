@@ -1,7 +1,28 @@
 """File handling utilities for the image batch processor."""
 
+import re
 from pathlib import Path
 from typing import List
+
+# Splits a filename into alternating text/digit runs, e.g. "pages-12.jpg" ->
+# ["pages-", "12", ".jpg"], so digit runs can be compared numerically below.
+_DIGITS_RE = re.compile(r"(\d+)")
+
+
+def _natural_sort_key(path: Path) -> List[object]:
+    """Sort key that orders embedded digit runs numerically.
+
+    Plain lexicographic sort (``sorted(paths)``) compares filenames
+    byte-by-byte, so "pages-100.jpg" sorts before "pages-2.jpg" (the
+    character '1' < '2'). That breaks the cookbook's true page order. This
+    key splits each filename into text/digit runs and compares digit runs as
+    integers, so "pages-2" < "pages-10" < "pages-99" < "pages-100" as
+    expected.
+    """
+    return [
+        int(part) if part.isdigit() else part.lower()
+        for part in _DIGITS_RE.split(path.name)
+    ]
 
 
 def discover_images(directory: Path, supported_extensions: List[str]) -> List[Path]:
@@ -13,7 +34,8 @@ def discover_images(directory: Path, supported_extensions: List[str]) -> List[Pa
         supported_extensions: List of file extensions to include (e.g., ['.jpg', '.png'])
     
     Returns:
-        List of Path objects for discovered image files, sorted by name
+        List of Path objects for discovered image files, in natural
+        (numeric-aware) filename order
     
     Raises:
         ValueError: If directory does not exist or is not a directory
@@ -37,8 +59,8 @@ def discover_images(directory: Path, supported_extensions: List[str]) -> List[Pa
         if file_path.is_file() and file_path.suffix.lower() in normalized_extensions:
             image_files.append(file_path)
     
-    # Sort by filename for consistent ordering
-    return sorted(image_files)
+    # Sort in natural (numeric-aware) order for consistent, reading-order results
+    return sorted(image_files, key=_natural_sort_key)
 
 
 def generate_output_filename(image_path: Path, output_extension: str = ".txt") -> str:

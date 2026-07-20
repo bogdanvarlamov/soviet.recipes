@@ -7,7 +7,6 @@ soviet.recipes/
 ├── phase_1/                          # Source data
 │   └── cookbook_images/              # 224 scanned cookbook pages (JPG)
 ├── phase_2/                          # Active development
-│   ├── docling/                      # Docling-specific tooling
 │   └── image_batch_processor/        # Main application
 └── .kiro/                            # Kiro configuration
     ├── specs/                        # Feature specifications

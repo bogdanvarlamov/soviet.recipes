@@ -11,20 +11,80 @@ class EngineConfig(BaseModel):
 
 
 class DoclingConfig(EngineConfig):
-    """Configuration for Docling-based extraction engine."""
+    """Configuration for Docling-based extraction engine.
+
+    Supports two text backends:
+      - EasyOCR (traditional OCR) when ``use_vlm`` is False
+      - A remote vision LLM via Docling's VLM pipeline when ``use_vlm`` is True.
+        This targets an OpenAI-compatible endpoint such as a local llama.cpp
+        server (llama-server) running a Qwen3-VL model.
+    """
     model_path: Optional[str] = None
+    # Request GPU (CUDA) for the EasyOCR/torch pipeline. Only effective on
+    # machines with an NVIDIA CUDA GPU and a CUDA-enabled torch build; on CPU-
+    # only or AMD/Vulkan setups EasyOCR falls back to CPU regardless.
     use_gpu: bool = False
     batch_size: int = Field(default=1, ge=1)
     ocr_enabled: bool = True
 
+    # Base directory for the engine's artifacts (markdown, doctags, reports,
+    # debug images). When set, artifact folders are created underneath it;
+    # otherwise the engine falls back to a repo-relative ./output directory.
+    output_dir: Optional[str] = None
+
+    # VLM backend (local llama.cpp / OpenAI-compatible server)
+    use_vlm: bool = True
+    vlm_url: str = "http://localhost:8080/v1/chat/completions"
+    vlm_model: str = "qwen3-vl"
+    vlm_api_key: Optional[str] = None
+    vlm_timeout: int = Field(default=300, ge=1)
+    vlm_scale: float = Field(default=2.0, gt=0)
+    vlm_response_format: Literal["markdown", "doctags", "html"] = "markdown"
+    vlm_prompt: str = Field(
+        default=(
+            "Transcribe ALL text from this scanned Soviet-era cookbook page "
+            "exactly as it appears, preserving the original language (Russian "
+            "and/or English), reading order, headings, ingredient lists, and "
+            "step numbering. Render tabular data as Markdown tables. Output "
+            "only the transcribed content as clean Markdown."
+        )
+    )
+
 
 class LLMConfig(EngineConfig):
-    """Configuration for LLM-based extraction engine."""
+    """Configuration for LLM-based extraction engine.
+
+    Designed to work with any OpenAI-compatible endpoint, including a local
+    llama.cpp server (llama-server) running a vision model such as Qwen3-VL.
+    """
     model_name: str
     temperature: float = Field(default=0.0, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1)
     api_key: Optional[str] = None
     base_url: Optional[str] = None
+    timeout: int = Field(default=300, ge=1)
+    # If set, downscale images so their longest edge is at most this many
+    # pixels before sending. Fewer pixels -> far fewer image tokens -> much
+    # faster prompt-eval. Lower for speed, raise for fine-text fidelity.
+    max_image_size: Optional[int] = Field(default=None, ge=1)
+    # When True, the engine exposes a ``skip_page`` tool the model can call for
+    # pages with no transcribable text (e.g. a full-page photograph). This
+    # avoids wasting retries on pages that will never yield text.
+    allow_skip: bool = True
+    prompt: str = Field(
+        default=(
+            "You are an expert transcriptionist digitizing a scanned page from "
+            "a Soviet-era cookbook. Transcribe ALL text from this image exactly "
+            "as it appears, preserving the original language (Russian and/or "
+            "English). Maintain the reading order, headings, ingredient lists, "
+            "and step numbering. Render tabular data as Markdown tables. Output "
+            "only the transcribed content as clean Markdown, with no commentary, "
+            "explanations, or added text of your own. If the page contains no "
+            "transcribable text at all (for example a full-page photograph, "
+            "illustration, or a blank page), do NOT invent or guess text: call "
+            "the skip_page tool instead."
+        )
+    )
 
 
 class APIConfig(EngineConfig):

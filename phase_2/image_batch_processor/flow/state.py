@@ -21,16 +21,31 @@ class BatchProcessorState(BaseModel):
         successful: Number of images successfully processed
         failed: Number of images that failed processing
         results: List of processing results for individual images
+        enable_preprocessing: When True, runs the image preprocessing subflow
+            (page split, white balance, etc.) before extraction begins.
+        preprocessing_output_dir: Directory the preprocessing subflow writes
+            to, and which becomes ``image_dir`` for extraction when
+            preprocessing runs. Defaults to a directory derived from
+            ``image_dir`` when left empty.
+        force_preprocessing: When True, re-runs the preprocessing subflow even
+            if ``preprocessing_output_dir`` already contains output.
     """
     
     image_dir: str = ""
     output_dir: str = ""
     engine_type: str = "docling"
     engine_config: Dict[str, Any] = Field(default_factory=dict)
+    max_images: Optional[int] = Field(default=None, ge=1)
+    max_workers: int = Field(default=1, ge=1)
+    enable_preprocessing: bool = False
+    preprocessing_output_dir: str = ""
+    force_preprocessing: bool = False
     total_images: int = Field(default=0, ge=0)
+    processing_time: float = Field(default=0.0, ge=0.0)
     processed_images: int = Field(default=0, ge=0)
     successful: int = Field(default=0, ge=0)
     failed: int = Field(default=0, ge=0)
+    skipped: int = Field(default=0, ge=0)
     results: List[Dict[str, Any]] = Field(default_factory=list)
     
     model_config = ConfigDict(

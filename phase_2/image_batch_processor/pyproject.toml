@@ -9,10 +9,120 @@ dependencies = [
     "docling>=2.0.0",
     "easyocr>=1.7.0",
     "hypothesis>=6.148.5",
+    "numpy>=2.0.0",
+    "opencv-python-headless>=5.0.0.93",
+    "pillow>=11.0.0",
     "pydantic>=2.12.5",
     "pytest>=9.0.1",
+    "scipy>=1.13.0",
+]
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.30.0",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+# Default llama.cpp / GPU settings shared by all poe tasks. Each value is only
+# a default: a real environment variable of the same name overrides it.
+[tool.poe.env]
+# Vulkan build of llama.cpp (llama-server.exe).
+LLAMA_SERVER_BIN = { default = "C:\\Users\\bogda\\Downloads\\llama-b7248-bin-win-vulkan-x64\\llama-server.exe" }
+# Qwen3-VL vision model pulled straight from Hugging Face. llama-server
+# downloads the model and its mmproj projector into the local llama.cpp cache
+# on first run. The 30B-A3B MoE (~3B active params/token) is much faster than
+# the dense 32B at similar quality - a good fit for a full 224-page batch.
+# Override LLAMA_HF_REPO (e.g. "unsloth/Qwen3-VL-32B-Instruct-GGUF:Q8_0" for
+# max accuracy), or set LLAMA_MODEL / LLAMA_MMPROJ to use local .gguf files.
+LLAMA_HF_REPO = { default = "unsloth/Qwen3-VL-30B-A3B-Instruct-GGUF:Q8_0" }
+LLAMA_HOST = { default = "127.0.0.1" }
+LLAMA_PORT = { default = "8080" }
+# Server + GPU flags (Vulkan): 32K context (a full page image at scale 2.0 is
+# ~4K tokens, well over the 4096 default), all layers on GPU, row split, flash
+# attention. 128 GB unified memory has ample room for a large KV cache.
+LLAMA_EXTRA_ARGS = { default = "-c 32768 -ngl 99 -sm row -t 16 -b 512 -ub 512 --flash-attn 1" }
+
+[tool.poe.tasks]
+# Run just the batch pipeline (assumes a VLM server is already running).
+extract = "python main.py"
+
+# Run the test suite.
+test = "pytest"
+
+# One-shot: start llama-server (if not already up) with the Vulkan build and
+# GPU flags above, wait, run the batch, then shut the server down.
+pipeline = "python run_pipeline.py"
+
+# Start only the local llama.cpp server (Vulkan build) and keep it running.
+# The first run downloads and caches the model + mmproj automatically.
+serve = "python run_pipeline.py --serve-only"
+
+# Quick test run: same as `pipeline` but only processes the first few images
+# (MAX_IMAGES) so you can sanity-check output before committing to a full run.
+[tool.poe.tasks.sample]
+cmd = "python run_pipeline.py"
+env = { MAX_IMAGES = "3" }
+
+# LLM-engine variants: direct VLM calls (no Docling pipeline), parallelized
+# across the server's slots (LLM_CONCURRENCY, default 4 in main.py).
+[tool.poe.tasks.sample-llm]
+cmd = "python run_pipeline.py"
+env = { ENGINE = "llm", MAX_IMAGES = "3" }
+
+[tool.poe.tasks.pipeline-llm]
+cmd = "python run_pipeline.py"
+env = { ENGINE = "llm" }
+
+# Smaller-param VL model: the dense Qwen3-VL 4B instead of the 30B-A3B default.
+# Far lower VRAM and faster startup, at some accuracy cost - handy for quick
+# iteration or memory-constrained machines.
+[tool.poe.tasks.pipeline-small]
+cmd = "python run_pipeline.py"
+env = { LLAMA_HF_REPO = "unsloth/Qwen3-VL-4B-Instruct-GGUF:Q8_0" }
+
+# Same smaller model, but at a lower image scale (1.0 vs the 2.0 default):
+# fewer image tokens -> faster prompt-eval / encoding and less memory, at the
+# cost of fine-text fidelity.
+[tool.poe.tasks.pipeline-small-lowscale]
+cmd = "python run_pipeline.py"
+env = { LLAMA_HF_REPO = "unsloth/Qwen3-VL-4B-Instruct-GGUF:Q8_0", VLM_SCALE = "1.0" }
+
+# --- Preprocessing-only ----------------------------------------------------
+# Run just the image_preprocessing subflow (page split + white balance/etc.),
+# without any extraction afterward. Writes to PREPROCESSING_OUTPUT_DIR
+# (default: phase_2/preprocessed). The 224 raw scans each split into
+# two pages -> 444 preprocessed images (224 sources minus the skipped
+# first/last cover photos = 222, x2 pages = 444).
+[tool.poe.tasks.preprocess]
+cmd = "python run_preprocess.py"
+
+# Same, but forces a re-run even if preprocessed output already exists,
+# overwriting it in place.
+[tool.poe.tasks.preprocess-force]
+cmd = "python run_preprocess.py"
+env = { FORCE_PREPROCESSING = "1" }
+
+# --- Preprocessed-image variants -------------------------------------------
+# These enable the preprocessing subflow (ENABLE_PREPROCESSING=1) so the batch
+# runs against page-split/white-balanced images (444 pages) instead of the raw
+# 224 scans; preprocessing is skipped automatically if its output already
+# exists (run `poe preprocess-force` to regenerate it first).
+
+# 1) Preprocessed images + Docling + EasyOCR. No VLM/llama-server needed, so
+# this runs main.py directly rather than through run_pipeline.py.
+[tool.poe.tasks.pipeline-preprocessed-easyocr]
+cmd = "python main.py"
+env = { ENABLE_PREPROCESSING = "1", ENGINE = "docling", USE_VLM = "0" }
+
+# 2) Preprocessed images + Docling (VLM backend) + Qwen3-VL 4B.
+[tool.poe.tasks.pipeline-preprocessed-small]
+cmd = "python run_pipeline.py"
+env = { ENABLE_PREPROCESSING = "1", ENGINE = "docling", LLAMA_HF_REPO = "unsloth/Qwen3-VL-4B-Instruct-GGUF:Q8_0" }
+
+# 3) Preprocessed images + LLM engine (parallel across server slots) + Qwen3-VL 4B.
+[tool.poe.tasks.pipeline-preprocessed-llm-small]
+cmd = "python run_pipeline.py"
+env = { ENABLE_PREPROCESSING = "1", ENGINE = "llm", LLAMA_HF_REPO = "unsloth/Qwen3-VL-4B-Instruct-GGUF:Q8_0" }

@@ -19,6 +19,7 @@ from config.settings import (
 )
 from exceptions import ValidationError, ConfigurationError
 from utils.file_utils import discover_images
+from utils.preprocessing import run_preprocessing_if_needed
 
 
 class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
@@ -49,6 +50,50 @@ class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
         self.processor = None
     
     @start()
+    def preprocess_images(self):
+        """
+        Optionally run the image preprocessing subflow before extraction.
+
+        When ``state.enable_preprocessing`` is True, runs the bundled
+        ``preprocessing`` subpackage (page split, white balance,
+        etc.) over ``state.image_dir`` and rewrites ``state.image_dir`` to
+        the preprocessing output directory so extraction runs against the
+        preprocessed images. If that output directory already contains
+        preprocessed images, the subflow is skipped and the existing output
+        is reused, unless ``state.force_preprocessing`` is True.
+
+        When ``state.enable_preprocessing`` is False (default), this step is
+        a no-op and ``state.image_dir`` is left untouched.
+
+        Raises:
+            ConfigurationError: If the preprocessing pipeline fails to run.
+        """
+        if not self.state.enable_preprocessing:
+            self.logger.info("Preprocessing subflow disabled; using image_dir as-is")
+            return
+
+        # Default preprocessing output lives under phase_2/ (a build artifact
+        # of the active development phase), not next to the raw Phase 1 source
+        # scans. Anchor to this package's location so the default is
+        # independent of cwd.
+        phase_2_dir = Path(__file__).resolve().parent.parent.parent
+        preprocessing_output_dir = (
+            self.state.preprocessing_output_dir
+            or str(phase_2_dir / "preprocessed")
+        )
+
+        output_dir = run_preprocessing_if_needed(
+            source_dir=self.state.image_dir,
+            output_dir=preprocessing_output_dir,
+            force=self.state.force_preprocessing,
+            logger=self.logger,
+        )
+
+        # Point extraction at the preprocessed images.
+        self.state.image_dir = str(output_dir)
+        self.state.preprocessing_output_dir = str(output_dir)
+
+    @listen(preprocess_images)
     def initialize_workflow(self):
         """
         Initialize and validate the workflow.
@@ -156,10 +201,17 @@ class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
         
         images = discover_images(image_dir, supported_extensions)
         
-        # Update state with total images
-        self.state.total_images = len(images)
-        
-        self.logger.info(f"Discovered {self.state.total_images} images to process")
+        # Update state with total images, capped by max_images if set
+        discovered = len(images)
+        if self.state.max_images is not None:
+            self.state.total_images = min(discovered, self.state.max_images)
+            self.logger.info(
+                f"Discovered {discovered} images; limiting to "
+                f"{self.state.total_images} (max_images={self.state.max_images})"
+            )
+        else:
+            self.state.total_images = discovered
+            self.logger.info(f"Discovered {self.state.total_images} images to process")
     
     @listen(discover_images)
     def process_images(self):
@@ -176,17 +228,24 @@ class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
             engine=self.engine,
             output_dir=output_dir,
             max_retries=3,  # Could be made configurable
-            logger=self.logger
+            logger=self.logger,
+            max_workers=self.state.max_workers
         )
         
-        # Process the batch
+        # Process the batch (optionally limited to the first N images)
         image_dir = Path(self.state.image_dir)
-        batch_report = self.processor.process_batch(image_dir)
+        batch_report = self.processor.process_batch(
+            image_dir, max_images=self.state.max_images
+        )
         
         # Update state with results
         self.state.processed_images = batch_report.total_images
         self.state.successful = batch_report.successful
         self.state.failed = batch_report.failed
+        self.state.skipped = batch_report.skipped
+        # Wall-clock batch time (accurate for parallel runs, unlike summing
+        # per-image times).
+        self.state.processing_time = batch_report.processing_time
         
         # Convert ProcessingResult dataclasses to dicts for state storage
         self.state.results = [
@@ -196,14 +255,16 @@ class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
                 'output_path': result.output_path,
                 'error': result.error,
                 'attempts': result.attempts,
-                'processing_time': result.processing_time
+                'processing_time': result.processing_time,
+                'skipped': result.skipped,
+                'skip_reason': result.skip_reason,
             }
             for result in batch_report.results
         ]
         
         self.logger.info(
             f"Batch processing complete: {self.state.successful} successful, "
-            f"{self.state.failed} failed"
+            f"{self.state.skipped} skipped, {self.state.failed} failed"
         )
     
     @listen(process_images)
@@ -226,26 +287,28 @@ class ImageBatchProcessorFlow(Flow[BatchProcessorState]):
                 output_path=r['output_path'],
                 error=r['error'],
                 attempts=r['attempts'],
-                processing_time=r['processing_time']
+                processing_time=r['processing_time'],
+                skipped=r.get('skipped', False),
+                skip_reason=r.get('skip_reason'),
             )
             for r in self.state.results
         ]
         
-        # Calculate total processing time from individual results
-        total_processing_time = sum(r.processing_time for r in results)
-        
+        # Use the wall-clock batch time (accurate for parallel runs) rather
+        # than summing per-image times, which would over-count concurrency.
         report = BatchReport(
             total_images=self.state.total_images,
             successful=self.state.successful,
             failed=self.state.failed,
-            processing_time=total_processing_time,
-            results=results
+            processing_time=self.state.processing_time,
+            results=results,
+            skipped=self.state.skipped,
         )
         
         self.logger.info(
             f"Final report: {report.total_images} images, "
             f"{report.successful} successful ({report.success_rate():.1%}), "
-            f"{report.failed} failed, "
+            f"{report.skipped} skipped, {report.failed} failed, "
             f"total time: {report.processing_time:.2f}s"
         )
         
