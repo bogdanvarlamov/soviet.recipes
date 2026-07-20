@@ -1,0 +1,1 @@
+There is no text on this page. It contains only two black-and-white photographs of food dishes.

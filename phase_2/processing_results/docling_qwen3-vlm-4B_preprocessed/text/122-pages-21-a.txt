@@ -1,0 +1,3 @@
+The image provided is a blank page from a cookbook. There is no text visible on the page. Therefore, the transcribed content is as follows:
+
+No text found.

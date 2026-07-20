@@ -1,0 +1,1 @@
+![Image](C:\Users\bogda\projects\soviet.recipes\phase_2\image_batch_processor\output\run_20260719_153406\docling_markdown\147-pages-30-b_artifacts\image_000000_299e4ce39a92b04efef2568d557bc73ed4c82f888e7f2fc1f27e2b4767e7271f.png)

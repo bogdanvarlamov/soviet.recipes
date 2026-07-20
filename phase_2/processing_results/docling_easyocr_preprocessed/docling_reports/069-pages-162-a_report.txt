@@ -1,0 +1,4 @@
+Confidence Report for: 069-pages-162-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.8362307194116954 table_score=nan ocr_score=0.8148789992687638 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8362307194116954, table_score=nan, ocr_score=0.8148789992687638, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8255548593402295, low_score=0.8159465852759105)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8255548593402295 low_score=0.8159465852759105

@@ -1,0 +1,4 @@
+Confidence Report for: 165-pages-47-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.9402184523642063 table_score=nan ocr_score=0.8266097408980698 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.9402184523642063, table_score=nan, ocr_score=0.8266097408980698, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8834140966311381, low_score=0.8322901764713766)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8834140966311381 low_score=0.8322901764713766

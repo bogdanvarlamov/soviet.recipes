@@ -1,0 +1,4 @@
+Confidence Report for: 181-pages-61-b.jpg
+============================================================
+
+parse_score=nan layout_score=0.9053164060626712 table_score=nan ocr_score=0.8073492763620399 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.9053164060626712, table_score=nan, ocr_score=0.8073492763620399, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8563328412123555, low_score=0.8122476328470715)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8563328412123555 low_score=0.8122476328470715

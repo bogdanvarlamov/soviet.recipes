@@ -1,0 +1,4 @@
+Confidence Report for: 130-pages-217-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.8011496271869686 table_score=nan ocr_score=0.8318932625317815 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8011496271869686, table_score=nan, ocr_score=0.8318932625317815, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8165214448593751, low_score=0.8026868089542092)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8165214448593751 low_score=0.8026868089542092

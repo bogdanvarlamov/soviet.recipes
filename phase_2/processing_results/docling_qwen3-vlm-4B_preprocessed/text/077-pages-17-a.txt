@@ -1,0 +1,1 @@
+No text is present in the image. The image is a black-and-white photograph of a kitchen scene with cooking utensils and food items on a stove, but there are no visible words, labels, or printed text on the page.

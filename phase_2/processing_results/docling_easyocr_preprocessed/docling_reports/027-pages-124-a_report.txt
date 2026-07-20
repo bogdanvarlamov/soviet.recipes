@@ -1,0 +1,4 @@
+Confidence Report for: 027-pages-124-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.7603414574457128 table_score=nan ocr_score=0.8300409203962112 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.7603414574457128, table_score=nan, ocr_score=0.8300409203962112, mean_grade=<QualityGrade.FAIR: 'fair'>, low_grade=<QualityGrade.FAIR: 'fair'>, mean_score=0.795191188920962, low_score=0.7638264305932377)}) mean_grade=<QualityGrade.FAIR: 'fair'> low_grade=<QualityGrade.FAIR: 'fair'> mean_score=0.795191188920962 low_score=0.7638264305932377

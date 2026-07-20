@@ -1,0 +1,1 @@
+This was made using the preprocessed images and then having the pipeline run with Docling VLM using model=unsloth/Qwen3-VL-4B-Instruct-GGUF:Q8_0 locally hosted in lama.cpp server

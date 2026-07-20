@@ -1,0 +1,1 @@
+This was created by running the pipeline against the raw photos from phase 1 using Docling w/EasyOCR engine

@@ -1,0 +1,4 @@
+Confidence Report for: 135-pages-221-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.8605663403541453 table_score=nan ocr_score=0.8712095812010374 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8605663403541453, table_score=nan, ocr_score=0.8712095812010374, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8658879607775913, low_score=0.8610985023964899)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8658879607775913 low_score=0.8610985023964899

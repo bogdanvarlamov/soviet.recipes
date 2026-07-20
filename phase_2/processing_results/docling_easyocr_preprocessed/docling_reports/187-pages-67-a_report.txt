@@ -1,0 +1,4 @@
+Confidence Report for: 187-pages-67-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.9173986566694159 table_score=nan ocr_score=0.7985973222011791 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.9173986566694159, table_score=nan, ocr_score=0.7985973222011791, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8579979894352975, low_score=0.8045373889245909)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8579979894352975 low_score=0.8045373889245909

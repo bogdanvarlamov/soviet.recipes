@@ -1,0 +1,1 @@
+There is no text on this page. It contains only a black-and-white photograph of a decorative dish with food items, likely from a Soviet-era cookbook, but no printed words, headings, ingredient lists, or step numbers are visible.

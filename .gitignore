@@ -45,7 +45,15 @@ htmlcov/
 output/
 outputs/
 processed/
+experiments/
+page-splits/
 
 # Temporary files
 *.tmp
 *.bak
+
+# Generated debug/visualization images (Docling OCR debug + markdown renders).
+# These are large (~32 MB each, ~39 GB total) and fully regenerable from the
+# pipeline, so they're kept out of git to avoid bloating the repo and blocking
+# pushes to GitHub. The lightweight text results (.txt/.md/.json) are still tracked.
+phase_2/processing_results/**/*.png

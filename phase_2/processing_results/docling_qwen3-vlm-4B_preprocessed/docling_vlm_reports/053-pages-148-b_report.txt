@@ -1,0 +1,4 @@
+Confidence Report for: 053-pages-148-b.jpg
+============================================================
+
+parse_score=nan layout_score=nan table_score=nan ocr_score=nan pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {}) mean_grade=<QualityGrade.UNSPECIFIED: 'unspecified'> low_grade=<QualityGrade.UNSPECIFIED: 'unspecified'> mean_score=nan low_score=nan

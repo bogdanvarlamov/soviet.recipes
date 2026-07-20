@@ -1,0 +1,4 @@
+Confidence Report for: 184-pages-64-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.8424813399712244 table_score=nan ocr_score=0.8235027630337971 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8424813399712244, table_score=nan, ocr_score=0.8235027630337971, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8329920515025108, low_score=0.8244516918806685)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8329920515025108 low_score=0.8244516918806685

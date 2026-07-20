@@ -1,0 +1,1 @@
+There is no text on this page. The image contains only a black-and-white photograph of food items (marshmallow skewers, burger patties, and a large piece of meat) arranged on wooden cutting boards. No captions, headings, ingredient lists, or step numbers are visible.

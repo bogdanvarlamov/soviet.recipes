@@ -1,0 +1,4 @@
+Confidence Report for: 211-pages-89-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.8811622858047485 table_score=nan ocr_score=0.8169713057642597 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8811622858047485, table_score=nan, ocr_score=0.8169713057642597, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8490667957845042, low_score=0.8201808547662841)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8490667957845042 low_score=0.8201808547662841

@@ -1,0 +1,4 @@
+Confidence Report for: 157-pages-4-b.jpg
+============================================================
+
+parse_score=nan layout_score=0.8286227078704452 table_score=nan ocr_score=0.8050671118454858 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.8286227078704452, table_score=nan, ocr_score=0.8050671118454858, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8168449098579655, low_score=0.8062448916467339)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8168449098579655 low_score=0.8062448916467339

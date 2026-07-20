@@ -1,0 +1,1 @@
+This image contains no text. It shows an open, blank page of a book or notebook with a light-colored page and a dark spine or binding edge visible on the left. There are no headings, ingredient lists, step numbers, or any other textual content.

@@ -1,0 +1,4 @@
+Confidence Report for: 053-pages-148-a.jpg
+============================================================
+
+parse_score=nan layout_score=0.9566768086873568 table_score=nan ocr_score=0.8250498611750658 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.9566768086873568, table_score=nan, ocr_score=0.8250498611750658, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.8908633349312114, low_score=0.8316312085506804)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.8908633349312114 low_score=0.8316312085506804

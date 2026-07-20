@@ -1,0 +1,1 @@
+CAVIAR MALOSSOL PRODUCE OF SOVIET UNION ASTRAKHAN ИКРА КЕТОВАЯ ИКРА ЗЕРНИСТАЯ ПАСТЕРНОВАЯ СЕРТИФИКАТ МОСКВИЕКОМЕНИНА

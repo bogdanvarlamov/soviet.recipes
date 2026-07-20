@@ -1,0 +1,4 @@
+Confidence Report for: 019-pages-117-b.jpg
+============================================================
+
+parse_score=nan layout_score=0.9163764196893444 table_score=nan ocr_score=0.8161774580804516 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.9163764196893444, table_score=nan, ocr_score=0.8161774580804516, mean_grade=<QualityGrade.GOOD: 'good'>, low_grade=<QualityGrade.GOOD: 'good'>, mean_score=0.866276938884898, low_score=0.8211874061608962)}) mean_grade=<QualityGrade.GOOD: 'good'> low_grade=<QualityGrade.GOOD: 'good'> mean_score=0.866276938884898 low_score=0.8211874061608962

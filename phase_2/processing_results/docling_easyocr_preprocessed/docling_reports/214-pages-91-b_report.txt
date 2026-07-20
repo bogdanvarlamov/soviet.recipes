@@ -1,0 +1,4 @@
+Confidence Report for: 214-pages-91-b.jpg
+============================================================
+
+parse_score=nan layout_score=0.6385432481765747 table_score=nan ocr_score=nan pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.6385432481765747, table_score=nan, ocr_score=nan, mean_grade=<QualityGrade.FAIR: 'fair'>, low_grade=<QualityGrade.FAIR: 'fair'>, mean_score=0.6385432481765747, low_score=0.6385432481765747)}) mean_grade=<QualityGrade.FAIR: 'fair'> low_grade=<QualityGrade.FAIR: 'fair'> mean_score=0.6385432481765747 low_score=0.6385432481765747

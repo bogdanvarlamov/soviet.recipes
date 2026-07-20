@@ -1,0 +1,1 @@
+There is no text on this page. The image shows a black-and-white photograph of corn on the cob, partially peeled back, resting on a reflective surface. No recipe, instructions, or textual content is visible.

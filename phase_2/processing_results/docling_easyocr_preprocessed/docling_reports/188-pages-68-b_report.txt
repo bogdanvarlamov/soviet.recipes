@@ -1,0 +1,4 @@
+Confidence Report for: 188-pages-68-b.jpg
+============================================================
+
+parse_score=nan layout_score=0.5849046409130096 table_score=nan ocr_score=0.7929303828571905 pages=defaultdict(<class 'docling.datamodel.base_models.PageConfidenceScores'>, {0: PageConfidenceScores(parse_score=nan, layout_score=0.5849046409130096, table_score=nan, ocr_score=0.7929303828571905, mean_grade=<QualityGrade.FAIR: 'fair'>, low_grade=<QualityGrade.FAIR: 'fair'>, mean_score=0.6889175118851001, low_score=0.5953059280102186)}) mean_grade=<QualityGrade.FAIR: 'fair'> low_grade=<QualityGrade.FAIR: 'fair'> mean_score=0.6889175118851001 low_score=0.5953059280102186

@@ -1,0 +1,1 @@
+The image shows an empty page from a book. There is no text visible on the page.
